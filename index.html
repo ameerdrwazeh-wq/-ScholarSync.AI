@@ -1,0 +1,2660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScholarSync AI — Collaborative Group Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ======= DESIGN TOKENS ======= */
+:root {
+  --bg: #080c14;
+  --bg2: #0d1220;
+  --bg3: #111827;
+  --surface: #141d2e;
+  --surface2: #1a2540;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #3b82f6;
+  --accent2: #6366f1;
+  --accent3: #10b981;
+  --accent4: #f59e0b;
+  --accent5: #ef4444;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #475569;
+  --glow: rgba(59,130,246,0.15);
+  --glow2: rgba(99,102,241,0.1);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 20px;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ======= SCROLLBAR ======= */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 99px; }
+
+/* ======= NOISE OVERLAY ======= */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* ======= PAGES ======= */
+.page { display: none; min-height: 100vh; }
+.page.active { display: block; animation: fadeIn 0.35s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ======= SIDEBAR NAV ======= */
+.app-shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 240px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  transition: var(--transition);
+}
+
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.logo-text span { color: var(--accent); }
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 12px 10px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text2);
+  user-select: none;
+  position: relative;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.1));
+  color: var(--accent);
+  border: 1px solid rgba(59,130,246,0.2);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent5);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 99px;
+}
+.nav-badge.green { background: var(--accent3); }
+
+.sidebar-footer {
+  padding: 16px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.user-card:hover { background: var(--surface); }
+.user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10.5px; color: var(--text3); }
+
+/* ======= MAIN CONTENT ======= */
+.main-content { margin-left: 240px; flex: 1; min-height: 100vh; }
+
+/* ======= TOP BAR ======= */
+.topbar {
+  height: 60px;
+  background: rgba(8,12,20,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  flex: 1;
+}
+.topbar-subtitle { font-size: 12px; color: var(--text3); font-weight: 400; font-family: var(--font-body); }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  width: 220px;
+  transition: var(--transition);
+}
+.search-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.search-bar input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; width: 100%; font-family: var(--font-body); }
+.search-bar input::placeholder { color: var(--text3); }
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 15px;
+  color: var(--text2);
+  position: relative;
+}
+.icon-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+.icon-btn .dot {
+  position: absolute;
+  top: 5px; right: 5px;
+  width: 7px; height: 7px;
+  background: var(--accent5);
+  border-radius: 50%;
+  border: 2px solid var(--bg2);
+}
+
+/* ======= CONTENT PADDING ======= */
+.content { padding: 28px; }
+
+/* ======= CARDS ======= */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  transition: var(--transition);
+}
+.card:hover { border-color: var(--border2); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+.card-subtitle { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ======= BUTTONS ======= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+  text-decoration: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  box-shadow: 0 4px 15px var(--glow);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--glow); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+.btn-secondary:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+.btn-ghost { background: transparent; color: var(--text2); }
+.btn-ghost:hover { color: var(--text); background: var(--surface); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-danger { background: rgba(239,68,68,0.15); color: var(--accent5); border: 1px solid rgba(239,68,68,0.3); }
+
+/* ======= STATS GRID ======= */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  opacity: 0.08;
+}
+.stat-card.blue::after { background: var(--accent); }
+.stat-card.purple::after { background: var(--accent2); }
+.stat-card.green::after { background: var(--accent3); }
+.stat-card.amber::after { background: var(--accent4); }
+.stat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.stat-icon { font-size: 22px; margin-bottom: 12px; }
+.stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 12px; color: var(--text2); }
+.stat-delta { font-size: 11px; color: var(--accent3); margin-top: 8px; font-weight: 600; }
+
+/* ======= PROGRESS BAR ======= */
+.progress-track {
+  background: var(--bg3);
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+.progress-fill.green { background: linear-gradient(90deg, var(--accent3), #06b6d4); }
+.progress-fill.amber { background: linear-gradient(90deg, var(--accent4), #f97316); }
+
+/* ======= GRIDS ======= */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* ======= TASK ITEM ======= */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition);
+}
+.task-item:last-child { border-bottom: none; }
+.task-item:hover { background: rgba(255,255,255,0.02); margin: 0 -22px; padding: 12px 22px; border-radius: var(--radius-sm); border-bottom: 1px solid var(--border); }
+.task-check {
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--border2);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.task-check.done { background: var(--accent3); border-color: var(--accent3); }
+.task-check.done::after { content: '✓'; color: #fff; font-size: 10px; font-weight: 700; }
+.task-info { flex: 1; min-width: 0; }
+.task-name { font-size: 13.5px; font-weight: 500; }
+.task-name.done { text-decoration: line-through; color: var(--text3); }
+.task-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.task-assignee {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+}
+.task-priority {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+.priority-high { background: rgba(239,68,68,0.15); color: var(--accent5); }
+.priority-medium { background: rgba(245,158,11,0.15); color: var(--accent4); }
+.priority-low { background: rgba(16,185,129,0.15); color: var(--accent3); }
+
+/* ======= MEMBER CARD ======= */
+.member-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.member-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+.member-top { display: flex; align-items: center; gap: 12px; }
+.member-avatar {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.member-name { font-size: 14px; font-weight: 700; font-family: var(--font-display); }
+.member-major { font-size: 11.5px; color: var(--text2); }
+.role-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  letter-spacing: 0.5px;
+}
+.role-admin { background: rgba(59,130,246,0.15); color: var(--accent); border: 1px solid rgba(59,130,246,0.3); }
+.role-member { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+.role-viewer { background: rgba(148,163,184,0.1); color: var(--text2); border: 1px solid var(--border); }
+
+.skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--bg3);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+}
+.skill-tag.pro { background: rgba(16,185,129,0.08); color: #6ee7b7; border-color: rgba(16,185,129,0.2); }
+.skill-tag.con { background: rgba(239,68,68,0.08); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
+
+/* ======= AI AGENT PANEL ======= */
+.ai-panel {
+  background: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(99,102,241,0.05));
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.ai-panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.ai-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent3);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+.ai-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--accent2); font-family: var(--font-mono); }
+
+.ai-reasoning {
+  font-size: 12.5px;
+  color: var(--text2);
+  line-height: 1.7;
+  font-style: italic;
+  border-left: 2px solid rgba(99,102,241,0.4);
+  padding-left: 12px;
+  margin-bottom: 14px;
+}
+
+/* ======= MILESTONE ======= */
+.milestone-item {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.milestone-item:last-child { border-bottom: none; }
+.milestone-dot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 3px;
+}
+.milestone-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+  flex-shrink: 0;
+}
+.milestone-dot.complete { background: var(--accent3); border-color: var(--accent3); }
+.milestone-dot.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px var(--glow); }
+.milestone-line { width: 2px; flex: 1; min-height: 20px; background: var(--border); }
+.milestone-content { flex: 1; }
+.milestone-name { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.milestone-date { font-size: 11px; color: var(--text3); }
+.milestone-progress { margin-top: 8px; }
+.milestone-pct { font-size: 11px; color: var(--text2); margin-bottom: 4px; display: flex; justify-content: space-between; }
+
+/* ======= CHAT ======= */
+.chat-container { display: flex; flex-direction: column; height: 400px; }
+.chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 8px; }
+.chat-msg { display: flex; gap: 10px; align-items: flex-start; }
+.chat-msg.self { flex-direction: row-reverse; }
+.chat-bubble {
+  max-width: 70%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+.chat-msg.self .chat-bubble {
+  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(99,102,241,0.15));
+  border-color: rgba(99,102,241,0.3);
+}
+.chat-sender { font-size: 10.5px; color: var(--text3); margin-bottom: 3px; font-weight: 600; }
+.chat-time { font-size: 10px; color: var(--text3); margin-top: 3px; }
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.chat-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: var(--transition);
+}
+.chat-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+
+/* ======= CALENDAR ======= */
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-header { text-align: center; font-size: 10px; font-weight: 700; color: var(--text3); padding: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text2);
+  position: relative;
+}
+.cal-day:hover { background: var(--surface2); color: var(--text); }
+.cal-day.today { background: var(--accent); color: #fff; font-weight: 700; }
+.cal-day.has-event::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent3);
+}
+.cal-day.other-month { color: var(--text3); opacity: 0.5; }
+
+/* ======= INPUT / FORM ======= */
+.input-group { margin-bottom: 16px; }
+.input-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 0.3px; }
+.input-field {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: var(--transition);
+}
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.input-field::placeholder { color: var(--text3); }
+textarea.input-field { resize: vertical; min-height: 80px; }
+select.input-field { cursor: pointer; }
+
+/* ======= LANDING PAGE ======= */
+.landing { min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+.landing-nav {
+  display: flex;
+  align-items: center;
+  padding: 20px 48px;
+  position: sticky;
+  top: 0;
+  background: rgba(8,12,20,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+.landing-nav-logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: 18px; font-weight: 800; }
+.landing-nav-links { display: flex; gap: 28px; margin-left: auto; margin-right: 28px; }
+.landing-nav-links a { color: var(--text2); text-decoration: none; font-size: 13.5px; font-weight: 500; transition: var(--transition); }
+.landing-nav-links a:hover { color: var(--text); }
+
+.hero-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 48px;
+  position: relative;
+}
+
+.hero-glow {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(59,130,246,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-glow2 {
+  position: absolute;
+  top: 60%;
+  left: 30%;
+  width: 400px;
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(99,102,241,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 99px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a5b4fc;
+  margin-bottom: 28px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6vw, 72px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -2px;
+  margin-bottom: 20px;
+  max-width: 800px;
+}
+.hero-title .grad {
+  background: linear-gradient(135deg, var(--accent), #a78bfa, var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 17px;
+  color: var(--text2);
+  max-width: 560px;
+  line-height: 1.65;
+  margin-bottom: 40px;
+}
+
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.btn-large { padding: 14px 32px; font-size: 15px; border-radius: 12px; }
+
+.hero-preview {
+  margin-top: 80px;
+  width: 100%;
+  max-width: 900px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+  position: relative;
+}
+
+.preview-bar {
+  background: var(--bg2);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.preview-dots { display: flex; gap: 6px; }
+.preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.features-section {
+  padding: 80px 48px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+}
+.section-sub { text-align: center; color: var(--text2); font-size: 15px; margin-bottom: 52px; }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 980px; margin: 0 auto; }
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: var(--transition);
+}
+.feature-card:hover { border-color: var(--border2); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.3); }
+.feature-icon { font-size: 28px; margin-bottom: 14px; }
+.feature-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.feature-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ======= AUTH PAGE ======= */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 24px;
+}
+.auth-glow {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px; height: 600px;
+  background: radial-gradient(ellipse at center, rgba(59,130,246,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  position: relative;
+  z-index: 1;
+}
+.auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.auth-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+.auth-sub { font-size: 13.5px; color: var(--text2); margin-bottom: 28px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--text3); font-size: 12px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.oauth-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-body);
+  margin-bottom: 12px;
+}
+.oauth-btn:hover { background: var(--bg3); border-color: var(--accent); }
+.auth-link { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
+.auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text2); }
+
+/* ======= AI PAGE ======= */
+.ai-input-area {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.delegation-result {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.delegation-header {
+  background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(99,102,241,0.08));
+  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.delegation-item {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: var(--transition);
+}
+.delegation-item:last-child { border-bottom: none; }
+.delegation-item:hover { background: rgba(255,255,255,0.02); }
+.delegation-rank {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.delegation-task { flex: 1; }
+.delegation-task-name { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.delegation-reasoning { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; font-style: italic; }
+.delegation-assignee { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.match-score {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-family: var(--font-mono);
+}
+.match-excellent { background: rgba(16,185,129,0.15); color: var(--accent3); }
+.match-good { background: rgba(59,130,246,0.15); color: var(--accent); }
+
+/* ======= FOCUS MODE ======= */
+.focus-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,8,15,0.97);
+  backdrop-filter: blur(20px);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.focus-overlay.active { display: flex; }
+.focus-task-card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface);
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  box-shadow: 0 0 80px rgba(59,130,246,0.1);
+}
+.focus-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); font-family: var(--font-mono); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.focus-task-name { font-family: var(--font-display); font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+.focus-timer { font-family: var(--font-mono); font-size: 48px; font-weight: 400; color: var(--accent); margin: 28px 0; }
+
+/* ======= MODAL ======= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,8,15,0.8);
+  backdrop-filter: blur(8px);
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-title { font-family: var(--font-display); font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+.modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  color: var(--text2);
+}
+.modal-close:hover { background: var(--bg3); color: var(--text); }
+
+/* ======= NOTIFICATION ======= */
+.notification-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  z-index: 500;
+  min-width: 280px;
+  max-width: 360px;
+  transform: translateX(120%);
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.notification-toast.show { transform: translateX(0); }
+.toast-icon { font-size: 18px; flex-shrink: 0; }
+.toast-text { flex: 1; font-size: 13px; font-weight: 500; }
+.toast-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* ======= AUDIT LOG ======= */
+.audit-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.audit-item:last-child { border-bottom: none; }
+.audit-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.audit-text { font-size: 12.5px; color: var(--text2); flex: 1; line-height: 1.4; }
+.audit-text strong { color: var(--text); }
+.audit-time { font-size: 10.5px; color: var(--text3); white-space: nowrap; font-family: var(--font-mono); }
+
+/* ======= REPORT ======= */
+.report-metric {
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.report-metric-label { font-size: 12px; color: var(--text2); }
+.report-metric-value { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+
+/* ======= XP / GAMIFICATION ======= */
+.xp-bar-container { position: relative; }
+.xp-level {
+  position: absolute;
+  right: 0; top: -18px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent4);
+  font-family: var(--font-mono);
+}
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent4);
+}
+
+/* ======= RESPONSIVE ======= */
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-240px); }
+  .main-content { margin-left: 0; }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+}
+
+/* ======= INVITE CODE ======= */
+.invite-code-box {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.invite-code {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--accent);
+}
+
+/* ======= TABS ======= */
+.tabs { display: flex; gap: 2px; background: var(--bg3); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 20px; }
+.tab {
+  flex: 1;
+  padding: 7px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: var(--transition);
+  color: var(--text2);
+}
+.tab.active { background: var(--surface2); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+/* ======= STUCK FLAG ======= */
+.stuck-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 99px;
+  padding: 3px 9px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent5);
+  font-family: var(--font-mono);
+}
+
+/* ======= FLOATING ACTION BUTTON ======= */
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 80px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px var(--glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  transition: var(--transition);
+}
+.fab:hover { transform: scale(1.1); box-shadow: 0 6px 28px var(--glow); }
+
+/* ======= SCHEMA VISUAL ======= */
+.schema-table {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.schema-table-header {
+  background: rgba(59,130,246,0.12);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.schema-table-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  gap: 12px;
+}
+.schema-table-row:last-child { border-bottom: none; }
+.schema-field { color: var(--text); flex: 1.5; }
+.schema-type { color: #93c5fd; flex: 1; }
+.schema-note { color: var(--text3); flex: 2; font-size: 10px; }
+.schema-pk { color: var(--accent4); font-size: 9px; font-weight: 700; padding: 1px 5px; background: rgba(245,158,11,0.1); border-radius: 3px; border: 1px solid rgba(245,158,11,0.2); }
+.schema-fk { color: #86efac; font-size: 9px; font-weight: 700; padding: 1px 5px; background: rgba(16,185,129,0.1); border-radius: 3px; border: 1px solid rgba(16,185,129,0.2); }
+
+</style>
+</head>
+<body>
+
+<!-- =============== LANDING PAGE =============== -->
+<div id="page-landing" class="page active">
+  <div class="landing">
+    <nav class="landing-nav">
+      <div class="landing-nav-logo">
+        <div class="logo-icon">⚡</div>
+        <span>Scholar<span style="color:var(--accent)">Sync</span> AI</span>
+      </div>
+      <div class="landing-nav-links">
+        <a href="#" onclick="showToast('Features coming soon!','Scroll to see the features section below','ℹ️')">Features</a>
+        <a href="#" onclick="showToast('Schema Explorer','Switch to the AI Brain page to see the full schema','🗄️')">Schema</a>
+        <a href="#" onclick="showToast('Pricing','Free during beta — invite your team now!','🎉')">Pricing</a>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="showPage('auth')">Sign In</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('auth')">Get Started Free →</button>
+      </div>
+    </nav>
+
+    <section class="hero-section">
+      <div class="hero-glow"></div>
+      <div class="hero-glow2"></div>
+      <div class="hero-badge">✦ AI-POWERED TEAM INTELLIGENCE PLATFORM</div>
+      <h1 class="hero-title">Where <span class="grad">AI Agents</span> Build the Blueprint. Your Team Builds the Future.</h1>
+      <p class="hero-sub">ScholarSync AI decomposes complex academic projects into smart subtasks, delegates to the right person based on their major and skill profile, and keeps every team member aligned in real time.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-large" onclick="showPage('auth')">🚀 Launch Your Workspace</button>
+        <button class="btn btn-secondary btn-large" onclick="showPage('dashboard')">👀 See Live Demo</button>
+      </div>
+
+      <!-- PREVIEW MOCKUP -->
+      <div class="hero-preview" style="margin-top:60px;">
+        <div class="preview-bar">
+          <div class="preview-dots">
+            <div class="preview-dot" style="background:#ef4444;"></div>
+            <div class="preview-dot" style="background:#f59e0b;"></div>
+            <div class="preview-dot" style="background:#10b981;"></div>
+          </div>
+          <div style="flex:1;text-align:center;font-size:11px;color:var(--text3);font-family:var(--font-mono);">scholarsync.ai/workspace/cs-capstone</div>
+        </div>
+        <div style="display:grid;grid-template-columns:200px 1fr;min-height:280px;">
+          <div style="background:var(--bg2);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:4px 6px;margin-bottom:4px;">Navigation</div>
+            <div style="padding:8px;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(99,102,241,0.1));border-radius:6px;font-size:11px;color:var(--accent);font-weight:600;display:flex;gap:6px;align-items:center;">📊 Dashboard</div>
+            <div style="padding:8px;border-radius:6px;font-size:11px;color:var(--text2);display:flex;gap:6px;align-items:center;">🤖 AI Agent</div>
+            <div style="padding:8px;border-radius:6px;font-size:11px;color:var(--text2);display:flex;gap:6px;align-items:center;">✅ Tasks</div>
+            <div style="padding:8px;border-radius:6px;font-size:11px;color:var(--text2);display:flex;gap:6px;align-items:center;">👥 Members</div>
+            <div style="padding:8px;border-radius:6px;font-size:11px;color:var(--text2);display:flex;gap:6px;align-items:center;">💬 Chat</div>
+          </div>
+          <div style="padding:20px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Team Progress</div>
+                <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent3);">78%</div>
+                <div style="background:var(--bg3);border-radius:99px;height:4px;margin-top:6px;overflow:hidden;"><div style="width:78%;height:100%;background:linear-gradient(90deg,var(--accent3),#06b6d4);border-radius:99px;"></div></div>
+              </div>
+              <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Tasks Active</div>
+                <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent);">24</div>
+                <div style="font-size:10px;color:var(--accent3);margin-top:2px;">↑ 3 today</div>
+              </div>
+              <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">AI Delegations</div>
+                <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:#a78bfa;">12</div>
+                <div style="font-size:10px;color:var(--text2);margin-top:2px;">↑ Auto-assigned</div>
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,rgba(59,130,246,0.06),rgba(99,102,241,0.06));border:1px solid rgba(99,102,241,0.2);border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--accent3);animation:pulse 2s infinite;"></div>
+                <span style="font-size:10px;font-weight:700;color:var(--accent2);font-family:var(--font-mono);letter-spacing:0.5px;">AI AGENT · DECISION LOG</span>
+              </div>
+              <div style="font-size:11px;color:var(--text2);font-style:italic;line-height:1.5;border-left:2px solid rgba(99,102,241,0.4);padding-left:10px;">"Assigning 'Database Schema Design' to Ameer (CS Major, 94% match) — strong SQL skills, no scheduling conflicts detected. Priority: HIGH."</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features-section" id="features">
+      <h2 class="section-title">Everything Your Team Needs</h2>
+      <p class="section-sub">Six powerful systems working in harmony to make your group projects exceptional.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <div class="feature-title">AI Agent System</div>
+          <div class="feature-desc">Intelligent task decomposition with milestone generation, skill-based delegation, and a transparent decision log for every assignment.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <div class="feature-title">RBAC & Private Rooms</div>
+          <div class="feature-desc">Admin, Member, and Viewer roles. Join workspaces via unique invite codes. Full access control for every action.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div class="feature-title">Live Dashboard</div>
+          <div class="feature-desc">Real-time team vs. individual completion charts, shared calendar, milestone tracker, and stuck-task detection.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <div class="feature-title">Task-Level Communication</div>
+          <div class="feature-desc">Comment threads with @mentions on every task, group workspace chat, and file/document sharing built in.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <div class="feature-title">Weekly AI Reports</div>
+          <div class="feature-desc">Auto-generated summaries covering completions, delays, individual contributions, and workload predictions.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <div class="feature-title">Focus Mode</div>
+          <div class="feature-desc">Distraction-free execution mode showing only your current critical tasks with a built-in Pomodoro timer.</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:40px;">
+        <button class="btn btn-primary btn-large" onclick="showPage('auth')">Start Building for Free →</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- =============== AUTH PAGE =============== -->
+<div id="page-auth" class="page">
+  <div class="auth-page">
+    <div class="auth-glow"></div>
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">⚡</div>
+        <span style="font-family:var(--font-display);font-size:16px;font-weight:700;">Scholar<span style="color:var(--accent)">Sync</span> AI</span>
+      </div>
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-sub">Sign in to your workspace or create a new account.</p>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchAuthTab(this,'sign-in')">Sign In</div>
+        <div class="tab" onclick="switchAuthTab(this,'sign-up')">Create Account</div>
+      </div>
+
+      <div id="auth-sign-in">
+        <button class="oauth-btn" onclick="handleLogin()">
+          <span style="font-size:18px;">G</span> Continue with Google
+        </button>
+        <div class="auth-divider">or use email</div>
+        <div class="input-group">
+          <label class="input-label">Email Address</label>
+          <input type="email" class="input-field" placeholder="you@university.edu" id="auth-email">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <input type="password" class="input-field" placeholder="••••••••" id="auth-password">
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="handleLogin()">Sign In →</button>
+        <div class="auth-footer">Don't have an account? <span class="auth-link" onclick="switchAuthTabByName('sign-up')">Create one</span></div>
+      </div>
+
+      <div id="auth-sign-up" style="display:none;">
+        <button class="oauth-btn" onclick="handleLogin()">
+          <span style="font-size:18px;">G</span> Sign up with Google
+        </button>
+        <div class="auth-divider">or use email</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="input-group"><label class="input-label">First Name</label><input type="text" class="input-field" placeholder="Ameer"></div>
+          <div class="input-group"><label class="input-label">Last Name</label><input type="text" class="input-field" placeholder="Al-Rashid"></div>
+        </div>
+        <div class="input-group"><label class="input-label">University Email</label><input type="email" class="input-field" placeholder="you@university.edu"></div>
+        <div class="input-group"><label class="input-label">Major / Field of Study</label>
+          <select class="input-field">
+            <option>Computer Science</option>
+            <option>Software Engineering</option>
+            <option>Data Science</option>
+            <option>Business Administration</option>
+            <option>Mathematics</option>
+            <option>Physics</option>
+            <option>Biology</option>
+            <option>Chemistry</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="input-group"><label class="input-label">Password</label><input type="password" class="input-field" placeholder="Min. 8 characters"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="handleLogin()">Create Account →</button>
+        <div class="auth-footer">Already have an account? <span class="auth-link" onclick="switchAuthTabByName('sign-in')">Sign in</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============== MAIN APP SHELL (Dashboard) =============== -->
+<div id="page-dashboard" class="page">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">⚡</div>
+        <div class="logo-text">Scholar<span>Sync</span> AI</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Workspace</div>
+        <div class="nav-item active" onclick="navTo(this,'dashboard-content')">
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="navTo(this,'tasks-content')">
+          <span class="nav-icon">✅</span> Tasks
+          <span class="nav-badge">3</span>
+        </div>
+        <div class="nav-item" onclick="navTo(this,'milestones-content')">
+          <span class="nav-icon">🏁</span> Milestones
+        </div>
+        <div class="nav-item" onclick="navTo(this,'ai-content')">
+          <span class="nav-icon">🤖</span> AI Agent
+          <span class="nav-badge green">Live</span>
+        </div>
+        <div class="nav-section-label">Collaboration</div>
+        <div class="nav-item" onclick="navTo(this,'members-content')">
+          <span class="nav-icon">👥</span> Members
+        </div>
+        <div class="nav-item" onclick="navTo(this,'chat-content')">
+          <span class="nav-icon">💬</span> Chat
+          <span class="nav-badge">2</span>
+        </div>
+        <div class="nav-item" onclick="navTo(this,'calendar-content')">
+          <span class="nav-icon">📅</span> Calendar
+        </div>
+        <div class="nav-section-label">Intelligence</div>
+        <div class="nav-item" onclick="navTo(this,'reports-content')">
+          <span class="nav-icon">📈</span> Reports
+        </div>
+        <div class="nav-item" onclick="navTo(this,'schema-content')">
+          <span class="nav-icon">🗄️</span> DB Schema
+        </div>
+        <div class="nav-item" onclick="navTo(this,'audit-content')">
+          <span class="nav-icon">📋</span> Audit Log
+        </div>
+        <div class="nav-section-label">Workspace</div>
+        <div class="nav-item" onclick="showModal('workspace-modal')">
+          <span class="nav-icon">➕</span> New Workspace
+        </div>
+        <div class="nav-item" onclick="showPage('landing')">
+          <span class="nav-icon">🚪</span> Back to Home
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">AM</div>
+          <div class="user-info">
+            <div class="user-name">Ameer Al-Rashid</div>
+            <div class="user-role">Admin · CS Major</div>
+          </div>
+          <span style="font-size:14px;color:var(--text3);">⚙️</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- TOP BAR -->
+      <div class="topbar">
+        <div>
+          <div class="topbar-title" id="page-heading">Dashboard</div>
+          <div class="topbar-subtitle">CS Capstone Project · Spring 2026</div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+          <div class="search-bar">
+            <span style="color:var(--text3);font-size:13px;">🔍</span>
+            <input type="text" placeholder="Search tasks, members...">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="toggleFocusMode()">⚡ Focus Mode</button>
+          <div class="icon-btn" onclick="showToast('Notifications','You have 3 new assignments','🔔')"><span>🔔</span><div class="dot"></div></div>
+          <div class="icon-btn" onclick="showModal('workspace-modal')"><span>➕</span></div>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- ====== DASHBOARD CONTENT ====== -->
+        <div id="dashboard-content">
+          <!-- STATS -->
+          <div class="stats-grid">
+            <div class="stat-card blue">
+              <div class="stat-icon">✅</div>
+              <div class="stat-value">78<span style="font-size:18px;color:var(--text2);">%</span></div>
+              <div class="stat-label">Team Completion</div>
+              <div class="stat-delta">↑ 12% from last week</div>
+            </div>
+            <div class="stat-card purple">
+              <div class="stat-icon">📋</div>
+              <div class="stat-value">24</div>
+              <div class="stat-label">Active Tasks</div>
+              <div class="stat-delta">6 overdue · 3 stuck</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-icon">👥</div>
+              <div class="stat-value">5</div>
+              <div class="stat-label">Team Members</div>
+              <div class="stat-delta">All online now</div>
+            </div>
+            <div class="stat-card amber">
+              <div class="stat-icon">🤖</div>
+              <div class="stat-value">12</div>
+              <div class="stat-label">AI Delegations</div>
+              <div class="stat-delta">98% acceptance rate</div>
+            </div>
+          </div>
+
+          <!-- MAIN GRID -->
+          <div class="two-col" style="margin-bottom:16px;">
+            <!-- MY TASKS -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">My Critical Tasks</div>
+                  <div class="card-subtitle">Ameer · Today's Priority</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="showModal('task-modal')">+ Add</button>
+              </div>
+              <div class="task-item">
+                <div class="task-check" onclick="toggleTask(this)"></div>
+                <div class="task-info">
+                  <div class="task-name">Design RESTful API endpoints</div>
+                  <div class="task-meta">Due: Today · Backend Architecture</div>
+                </div>
+                <span class="task-priority priority-high">HIGH</span>
+              </div>
+              <div class="task-item">
+                <div class="task-check done" onclick="toggleTask(this)"></div>
+                <div class="task-info">
+                  <div class="task-name done">Set up PostgreSQL schema</div>
+                  <div class="task-meta">Completed 2h ago · Database</div>
+                </div>
+                <span class="task-priority priority-high">HIGH</span>
+              </div>
+              <div class="task-item">
+                <div class="task-check" onclick="toggleTask(this)"></div>
+                <div class="task-info">
+                  <div class="task-name">Write unit tests for auth module</div>
+                  <div class="task-meta">Due: Tomorrow · Testing</div>
+                </div>
+                <span class="task-priority priority-medium">MED</span>
+              </div>
+              <div class="task-item">
+                <div class="task-check" onclick="toggleTask(this)"></div>
+                <div class="task-info">
+                  <div class="task-name">Code review: Frontend components</div>
+                  <div class="task-meta">Due: Apr 14 · Code Review</div>
+                </div>
+                <span class="task-priority priority-low">LOW</span>
+              </div>
+              <div style="margin-top:14px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px;">
+                  <span>My Progress</span><span style="color:var(--accent3);">1/4 done</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" style="width:25%;"></div></div>
+              </div>
+            </div>
+
+            <!-- MILESTONE PROGRESS -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Project Milestones</div>
+                  <div class="card-subtitle">CS Capstone — Spring 2026</div>
+                </div>
+                <span style="font-size:12px;color:var(--accent3);font-weight:700;">Phase 2 Active</span>
+              </div>
+              <div class="milestone-item">
+                <div class="milestone-dot-container">
+                  <div class="milestone-dot complete"></div>
+                  <div class="milestone-line"></div>
+                </div>
+                <div class="milestone-content">
+                  <div class="milestone-name">Requirements & Planning</div>
+                  <div class="milestone-date">Completed Mar 20, 2026</div>
+                  <div class="milestone-progress">
+                    <div class="progress-track"><div class="progress-fill green" style="width:100%;"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="milestone-item">
+                <div class="milestone-dot-container">
+                  <div class="milestone-dot active"></div>
+                  <div class="milestone-line"></div>
+                </div>
+                <div class="milestone-content">
+                  <div class="milestone-name">Backend Development</div>
+                  <div class="milestone-date">Due Apr 20 · 78% complete</div>
+                  <div class="milestone-progress">
+                    <div class="progress-track"><div class="progress-fill" style="width:78%;"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="milestone-item">
+                <div class="milestone-dot-container">
+                  <div class="milestone-dot"></div>
+                  <div class="milestone-line"></div>
+                </div>
+                <div class="milestone-content">
+                  <div class="milestone-name">Frontend Integration</div>
+                  <div class="milestone-date">Due May 5 · 30% complete</div>
+                  <div class="milestone-progress">
+                    <div class="milestone-pct"><span></span><span style="color:var(--text3);">30%</span></div>
+                    <div class="progress-track"><div class="progress-fill amber" style="width:30%;"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="milestone-item" style="padding-bottom:0;">
+                <div class="milestone-dot-container"><div class="milestone-dot"></div></div>
+                <div class="milestone-content">
+                  <div class="milestone-name">Testing & Deployment</div>
+                  <div class="milestone-date">Due May 25 · Not started</div>
+                  <div class="milestone-progress">
+                    <div class="progress-track"><div class="progress-fill" style="width:0%;"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOTTOM GRID -->
+          <div class="two-col">
+            <!-- AI PANEL -->
+            <div class="ai-panel">
+              <div class="ai-panel-header">
+                <div class="ai-dot"></div>
+                <div class="ai-label">AI Agent · Latest Delegation</div>
+              </div>
+              <div class="ai-reasoning">
+                "Assigned <strong style="color:var(--text);font-style:normal;">API Security Implementation</strong> to <strong style="color:var(--accent);font-style:normal;">Ameer Al-Rashid</strong> — Computer Science major with a 94% skill match score. Strengths: cryptography coursework, backend API experience, and no scheduling conflicts in the next 48 hours. Estimated completion: 6.5 hours."
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;">AM</div>
+                <span style="font-size:13px;font-weight:600;">Ameer Al-Rashid</span>
+                <span class="match-score match-excellent">94% Match</span>
+                <span class="task-priority priority-high" style="margin-left:auto;">HIGH PRIORITY</span>
+              </div>
+              <div style="margin-top:14px;display:flex;gap:8px;">
+                <button class="btn btn-primary btn-sm" onclick="showToast('Delegation Accepted','Task assigned to Ameer successfully!','✅')">Accept Delegation</button>
+                <button class="btn btn-secondary btn-sm" onclick="navTo(document.querySelector('[onclick*=ai-content]'),'ai-content')">View Full AI Log</button>
+              </div>
+            </div>
+
+            <!-- TEAM PROGRESS -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Team Performance</div>
+                <div class="streak-badge">🔥 7-day streak</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+                    <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">AM</span>Ameer</span>
+                    <span style="color:var(--accent3);font-weight:700;">92%</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill green" style="width:92%;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+                    <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">SA</span>Sara</span>
+                    <span style="color:var(--accent);font-weight:700;">85%</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill" style="width:85%;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+                    <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">KL</span>Khalil</span>
+                    <span style="color:var(--accent);font-weight:700;">70%</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill" style="width:70%;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+                    <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#ec4899);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">LM</span>Lina</span>
+                    <span style="color:var(--accent4);font-weight:700;">63%</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill amber" style="width:63%;"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;">
+                    <span style="display:flex;align-items:center;gap:6px;"><span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f43f5e,#f97316);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;">RB</span>Rami</span>
+                    <span style="color:var(--accent5);font-weight:700;">48%</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill" style="width:48%;background:linear-gradient(90deg,#ef4444,#f97316);"></div></div>
+                </div>
+              </div>
+              <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--text2);">XP this week</span>
+                <div class="xp-bar-container" style="flex:1;margin:0 12px;">
+                  <div class="xp-level">Lv.12</div>
+                  <div class="progress-track" style="height:8px;margin-top:8px;"><div class="progress-fill" style="width:68%;background:linear-gradient(90deg,#f59e0b,#f97316);"></div></div>
+                </div>
+                <span style="font-size:12px;font-weight:700;color:var(--accent4);">2,840 XP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== TASKS CONTENT ====== -->
+        <div id="tasks-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">All Tasks</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">Manage, assign, and track every deliverable</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary btn-sm">Filter ↓</button>
+              <button class="btn btn-primary btn-sm" onclick="showModal('task-modal')">+ New Task</button>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab active" onclick="this.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">All (24)</div>
+            <div class="tab" onclick="this.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">My Tasks (4)</div>
+            <div class="tab" onclick="this.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">Overdue (6)</div>
+            <div class="tab" onclick="this.parentNode.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">Stuck (3)</div>
+          </div>
+
+          <div class="card">
+            <div class="task-item">
+              <div class="task-check" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name">Design RESTful API endpoints</div>
+                <div class="task-meta">Assigned to: Ameer · Backend Architecture · Due: Apr 10</div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;">AM</div>
+              <span class="task-priority priority-high">HIGH</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name">UI/UX wireframes for dashboard
+                  <span class="stuck-flag" style="margin-left:8px;">🚩 STUCK</span>
+                </div>
+                <div class="task-meta">Assigned to: Lina · Design · Due: Apr 8 <span style="color:var(--accent5);">⚠ Overdue</span></div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;">LM</div>
+              <span class="task-priority priority-high">HIGH</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check done" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name done">Set up PostgreSQL schema</div>
+                <div class="task-meta">Completed by: Ameer · Database · Apr 9</div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;">AM</div>
+              <span class="task-priority priority-high">HIGH</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name">Market analysis & literature review</div>
+                <div class="task-meta">Assigned to: Sara · Research · Due: Apr 12</div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;">SA</div>
+              <span class="task-priority priority-medium">MED</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name">Authentication & JWT implementation</div>
+                <div class="task-meta">Assigned to: Khalil · Security · Due: Apr 13</div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;">KL</div>
+              <span class="task-priority priority-medium">MED</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name">Final presentation slides
+                  <span class="stuck-flag" style="margin-left:8px;">🚩 STUCK</span>
+                </div>
+                <div class="task-meta">Assigned to: Rami · Presentation · Due: Apr 9 <span style="color:var(--accent5);">⚠ Overdue</span></div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#f43f5e,#f97316);color:#fff;">RB</div>
+              <span class="task-priority priority-high">HIGH</span>
+            </div>
+            <div class="task-item">
+              <div class="task-check" onclick="toggleTask(this)"></div>
+              <div class="task-info">
+                <div class="task-name">Write unit tests for auth module</div>
+                <div class="task-meta">Assigned to: Ameer · Testing · Due: Apr 11</div>
+              </div>
+              <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;">AM</div>
+              <span class="task-priority priority-low">LOW</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== MILESTONES CONTENT ====== -->
+        <div id="milestones-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Milestones</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">Project roadmap and phase tracking</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showModal('task-modal')">+ New Milestone</button>
+          </div>
+          <div class="three-col">
+            <div class="card" style="border-color:rgba(16,185,129,0.3);background:linear-gradient(135deg,rgba(16,185,129,0.04),var(--surface));">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent3);">COMPLETE</span>
+                <span style="font-size:20px;">✅</span>
+              </div>
+              <div class="card-title" style="margin-bottom:6px;">Requirements & Planning</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Completed Mar 20, 2026</div>
+              <div class="progress-track"><div class="progress-fill green" style="width:100%;"></div></div>
+              <div style="font-size:12px;color:var(--accent3);margin-top:6px;font-weight:700;">100% · 12 tasks done</div>
+            </div>
+            <div class="card" style="border-color:rgba(59,130,246,0.3);background:linear-gradient(135deg,rgba(59,130,246,0.05),var(--surface));box-shadow:0 0 30px rgba(59,130,246,0.08);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);">ACTIVE</span>
+                <span style="font-size:20px;">⚡</span>
+              </div>
+              <div class="card-title" style="margin-bottom:6px;">Backend Development</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Due Apr 20, 2026</div>
+              <div class="progress-track"><div class="progress-fill" style="width:78%;"></div></div>
+              <div style="font-size:12px;color:var(--accent);margin-top:6px;font-weight:700;">78% · 10 days remaining</div>
+            </div>
+            <div class="card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);">UPCOMING</span>
+                <span style="font-size:20px;">🎯</span>
+              </div>
+              <div class="card-title" style="margin-bottom:6px;">Frontend Integration</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Starts Apr 21, 2026</div>
+              <div class="progress-track"><div class="progress-fill amber" style="width:30%;"></div></div>
+              <div style="font-size:12px;color:var(--accent4);margin-top:6px;font-weight:700;">30% pre-work done</div>
+            </div>
+            <div class="card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);">UPCOMING</span>
+                <span style="font-size:20px;">🧪</span>
+              </div>
+              <div class="card-title" style="margin-bottom:6px;">Testing & QA</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Starts May 6, 2026</div>
+              <div class="progress-track"><div class="progress-fill" style="width:0%;"></div></div>
+              <div style="font-size:12px;color:var(--text3);margin-top:6px;font-weight:700;">Not started</div>
+            </div>
+            <div class="card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);">UPCOMING</span>
+                <span style="font-size:20px;">🚀</span>
+              </div>
+              <div class="card-title" style="margin-bottom:6px;">Deployment & Demo</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Due May 25, 2026</div>
+              <div class="progress-track"><div class="progress-fill" style="width:0%;"></div></div>
+              <div style="font-size:12px;color:var(--text3);margin-top:6px;font-weight:700;">Not started</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== AI AGENT CONTENT ====== -->
+        <div id="ai-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">AI Agent System</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">Smart task decomposition and skill-based delegation engine</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div class="ai-dot"></div>
+              <span style="font-size:12px;font-weight:700;color:var(--accent3);font-family:var(--font-mono);">AGENT ONLINE</span>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-bottom:16px;">
+            <!-- AI INPUT -->
+            <div>
+              <div class="card" style="margin-bottom:16px;">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">🧠 Task Decomposition Engine</div>
+                    <div class="card-subtitle">Paste a project description — AI generates the full hierarchy</div>
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Project Description</label>
+                  <textarea class="input-field" id="project-desc" placeholder="e.g. Build a full-stack e-commerce platform with user authentication, product catalog, shopping cart, payment integration, and admin dashboard. Deploy to AWS by May 25th." style="min-height:100px;"></textarea>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Deadline</label>
+                  <input type="date" class="input-field" value="2026-05-25">
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Team Size</label>
+                  <select class="input-field">
+                    <option>5 Members</option><option>3-4 Members</option><option>6+ Members</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="runAIDecomposition()">
+                  🤖 Run AI Agent
+                </button>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">⚙️ AI Prompting Logic</div>
+                  <div class="card-subtitle">Live prompt template used for delegation</div>
+                </div>
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-family:var(--font-mono);font-size:11px;line-height:1.8;color:var(--text2);max-height:280px;overflow-y:auto;">
+                  <span style="color:#7dd3fc;">SYSTEM:</span> You are ScholarSync's delegation engine.<br>
+                  You receive a project and a team roster.<br><br>
+                  <span style="color:#7dd3fc;">RULES:</span><br>
+                  1. Decompose the project into milestones → daily tasks<br>
+                  2. For each task, score every member 0-100:<br>
+                  &nbsp;&nbsp;• Major relevance: +40 pts<br>
+                  &nbsp;&nbsp;• Listed pros/skills: +30 pts<br>
+                  &nbsp;&nbsp;• Workload balance: +20 pts<br>
+                  &nbsp;&nbsp;• Past performance: +10 pts<br>
+                  3. Assign highest scorer<br>
+                  4. Flag conflicts (2+ critical tasks/day)<br>
+                  5. Provide reasoning for every assignment<br>
+                  6. Output JSON with schema:<br>
+                  &nbsp;&nbsp;{task, assignee, score, reason, priority}<br><br>
+                  <span style="color:#7dd3fc;">USER:</span> Project: {description}<br>
+                  Team: {members_json}<br>
+                  Deadline: {deadline}
+                </div>
+              </div>
+            </div>
+
+            <!-- DELEGATION RESULTS -->
+            <div>
+              <div class="delegation-result" id="delegation-output">
+                <div class="delegation-header">
+                  <div class="ai-dot"></div>
+                  <span style="font-family:var(--font-display);font-size:14px;font-weight:700;">Delegation Decision Log</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--font-mono);">Generated: Apr 10, 2026</span>
+                </div>
+                <div class="delegation-item">
+                  <div class="delegation-rank">01</div>
+                  <div class="delegation-task">
+                    <div class="delegation-task-name">API Architecture & Database Design</div>
+                    <div class="delegation-reasoning">"CS major with strong SQL and system design background. No scheduling conflicts. Highest relevant skill score on the team. Assigned first due to critical-path dependency."</div>
+                    <div class="delegation-assignee">
+                      <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;">AM</div>
+                      <span style="font-size:12.5px;font-weight:600;">Ameer Al-Rashid</span>
+                      <span class="match-score match-excellent">94% Match</span>
+                      <span class="task-priority priority-high" style="margin-left:auto;">CRITICAL</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="delegation-item">
+                  <div class="delegation-rank">02</div>
+                  <div class="delegation-task">
+                    <div class="delegation-task-name">Market Research & User Personas</div>
+                    <div class="delegation-reasoning">"Business major with documented research and analytical writing skills. Previous project included literature reviews. Best fit for research-heavy deliverable this phase."</div>
+                    <div class="delegation-assignee">
+                      <div class="task-assignee" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;">SA</div>
+                      <span style="font-size:12.5px;font-weight:600;">Sara Mahmoud</span>
+                      <span class="match-score match-excellent">88% Match</span>
+                      <span class="task-priority priority-high" style="margin-left:auto;">HIGH</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="delegation-item">
+                  <div class="delegation-rank">03</div>
+                  <div class="delegation-task">
+                    <div class="delegation-task-name">UI/UX Design System</div>
+                    <div class="delegation-reasoning">"Design track electives and Figma portfolio make Lina the natural fit. Her listed con (backend dev) actually confirms she should stay on frontend — avoids skill mismatch on API tasks."</div>
+                    <div class="delegation-assignee">
+                      <div class="task-assignee" style="background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;">LM</div>
+                      <span style="font-size:12.5px;font-weight:600;">Lina Mansour</span>
+                      <span class="match-score match-excellent">91% Match</span>
+                      <span class="task-priority priority-medium" style="margin-left:auto;">MED</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="delegation-item">
+                  <div class="delegation-rank">04</div>
+                  <div class="delegation-task">
+                    <div class="delegation-task-name">Security & Authentication Layer</div>
+                    <div class="delegation-reasoning">"Cybersecurity electives and prior JWT project make Khalil the best fit. Workload analysis shows 3 available days this week. Critical-path task that must complete before frontend integration."</div>
+                    <div class="delegation-assignee">
+                      <div class="task-assignee" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;">KL</div>
+                      <span style="font-size:12.5px;font-weight:600;">Khalil Nasser</span>
+                      <span class="match-score match-good">82% Match</span>
+                      <span class="task-priority priority-high" style="margin-left:auto;">HIGH</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="delegation-item">
+                  <div class="delegation-rank">05</div>
+                  <div class="delegation-task">
+                    <div class="delegation-task-name">Final Presentation & Demo Script</div>
+                    <div class="delegation-reasoning">"Rami's communication and public speaking skills (listed as top pro) are the primary factor. His lower technical score is offset by the presentation-focused nature of this deliverable."</div>
+                    <div class="delegation-assignee">
+                      <div class="task-assignee" style="background:linear-gradient(135deg,#f43f5e,#f97316);color:#fff;">RB</div>
+                      <span style="font-size:12.5px;font-weight:600;">Rami Barakat</span>
+                      <span class="match-score match-good">76% Match</span>
+                      <span class="task-priority priority-medium" style="margin-left:auto;">MED</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== MEMBERS CONTENT ====== -->
+        <div id="members-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Team Members</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">Skill profiles used by the AI delegation engine</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="showModal('invite-modal')">📧 Invite Member</button>
+          </div>
+          <div class="three-col">
+            <div class="member-card">
+              <div class="member-top">
+                <div class="member-avatar" style="background:linear-gradient(135deg,#6366f1,#3b82f6);">AM</div>
+                <div>
+                  <div class="member-name">Ameer Al-Rashid</div>
+                  <div class="member-major">Computer Science · Year 4</div>
+                </div>
+                <div class="role-badge role-admin">Admin</div>
+              </div>
+              <div class="skill-tags">
+                <span class="skill-tag pro">✓ Backend APIs</span>
+                <span class="skill-tag pro">✓ SQL / DBs</span>
+                <span class="skill-tag pro">✓ System Design</span>
+                <span class="skill-tag con">✗ UI Design</span>
+              </div>
+              <div style="margin-top:4px;">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Task completion · This sprint</div>
+                <div class="progress-track"><div class="progress-fill green" style="width:92%;"></div></div>
+                <div style="font-size:11px;color:var(--accent3);margin-top:3px;font-weight:700;">92% · 11/12 tasks</div>
+              </div>
+            </div>
+            <div class="member-card">
+              <div class="member-top">
+                <div class="member-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">SA</div>
+                <div>
+                  <div class="member-name">Sara Mahmoud</div>
+                  <div class="member-major">Business Admin · Year 3</div>
+                </div>
+                <div class="role-badge role-member">Member</div>
+              </div>
+              <div class="skill-tags">
+                <span class="skill-tag pro">✓ Research</span>
+                <span class="skill-tag pro">✓ Data Analysis</span>
+                <span class="skill-tag pro">✓ Report Writing</span>
+                <span class="skill-tag con">✗ Coding</span>
+              </div>
+              <div style="margin-top:4px;">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Task completion · This sprint</div>
+                <div class="progress-track"><div class="progress-fill" style="width:85%;"></div></div>
+                <div style="font-size:11px;color:var(--accent);margin-top:3px;font-weight:700;">85% · 7/8 tasks</div>
+              </div>
+            </div>
+            <div class="member-card">
+              <div class="member-top">
+                <div class="member-avatar" style="background:linear-gradient(135deg,#10b981,#06b6d4);">KL</div>
+                <div>
+                  <div class="member-name">Khalil Nasser</div>
+                  <div class="member-major">Software Engineering · Year 4</div>
+                </div>
+                <div class="role-badge role-member">Member</div>
+              </div>
+              <div class="skill-tags">
+                <span class="skill-tag pro">✓ Security</span>
+                <span class="skill-tag pro">✓ DevOps</span>
+                <span class="skill-tag pro">✓ Python</span>
+                <span class="skill-tag con">✗ Deadlines</span>
+              </div>
+              <div style="margin-top:4px;">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Task completion · This sprint</div>
+                <div class="progress-track"><div class="progress-fill" style="width:70%;"></div></div>
+                <div style="font-size:11px;color:var(--accent);margin-top:3px;font-weight:700;">70% · 7/10 tasks</div>
+              </div>
+            </div>
+            <div class="member-card">
+              <div class="member-top">
+                <div class="member-avatar" style="background:linear-gradient(135deg,#a78bfa,#ec4899);">LM</div>
+                <div>
+                  <div class="member-name">Lina Mansour</div>
+                  <div class="member-major">Graphic Design · Year 3</div>
+                </div>
+                <div class="role-badge role-member">Member</div>
+              </div>
+              <div class="skill-tags">
+                <span class="skill-tag pro">✓ Figma</span>
+                <span class="skill-tag pro">✓ UI/UX</span>
+                <span class="skill-tag pro">✓ CSS/HTML</span>
+                <span class="skill-tag con">✗ Backend Dev</span>
+              </div>
+              <div style="margin-top:4px;">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Task completion · This sprint</div>
+                <div class="progress-track"><div class="progress-fill amber" style="width:63%;"></div></div>
+                <div style="font-size:11px;color:var(--accent4);margin-top:3px;font-weight:700;">63% · 5/8 tasks</div>
+              </div>
+            </div>
+            <div class="member-card">
+              <div class="member-top">
+                <div class="member-avatar" style="background:linear-gradient(135deg,#f43f5e,#f97316);">RB</div>
+                <div>
+                  <div class="member-name">Rami Barakat</div>
+                  <div class="member-major">Communications · Year 3</div>
+                </div>
+                <div class="role-badge role-viewer">Viewer</div>
+              </div>
+              <div class="skill-tags">
+                <span class="skill-tag pro">✓ Presenting</span>
+                <span class="skill-tag pro">✓ Writing</span>
+                <span class="skill-tag con">✗ Programming</span>
+                <span class="skill-tag con">✗ Technical Tasks</span>
+              </div>
+              <div style="margin-top:4px;">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Task completion · This sprint</div>
+                <div class="progress-track"><div class="progress-fill" style="width:48%;background:linear-gradient(90deg,#ef4444,#f97316);"></div></div>
+                <div style="font-size:11px;color:var(--accent5);margin-top:3px;font-weight:700;">48% · 4/8 tasks</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== CHAT CONTENT ====== -->
+        <div id="chat-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Group Chat</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">CS Capstone · 5 members online</p>
+            </div>
+          </div>
+          <div class="card" style="max-width:700px;">
+            <div class="chat-container">
+              <div class="chat-messages" id="chat-messages">
+                <div class="chat-msg">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;width:30px;height:30px;">SA</div>
+                  <div>
+                    <div class="chat-bubble">
+                      <div class="chat-sender">Sara Mahmoud</div>
+                      Hey team! I finished the market research. Uploading the doc now 📊
+                      <div class="chat-time">2:14 PM</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="chat-msg">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;width:30px;height:30px;">LM</div>
+                  <div>
+                    <div class="chat-bubble">
+                      <div class="chat-sender">Lina Mansour</div>
+                      Great! @Ameer can you review the wireframes when you get a chance? Need your backend feedback before I finalize.
+                      <div class="chat-time">2:20 PM</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="chat-msg self">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;width:30px;height:30px;">AM</div>
+                  <div>
+                    <div class="chat-bubble">
+                      Sure @Lina! I'll review by tonight. Just finished the DB schema — API endpoints coming next.
+                      <div class="chat-time">2:35 PM</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="chat-msg">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;width:30px;height:30px;">KL</div>
+                  <div>
+                    <div class="chat-bubble">
+                      <div class="chat-sender">Khalil Nasser</div>
+                      🤖 AI Agent just assigned me the auth layer. Makes sense, I've done JWT before. Starting tomorrow.
+                      <div class="chat-time">3:02 PM</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="chat-input-row">
+                <input type="text" class="chat-input" id="chat-input" placeholder="Message the team... (use @name to mention)">
+                <button class="btn btn-secondary btn-sm" onclick="sendMessage()">📎</button>
+                <button class="btn btn-primary btn-sm" onclick="sendMessage()">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== CALENDAR CONTENT ====== -->
+        <div id="calendar-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Shared Calendar</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">April 2026 · Team deadlines & milestones</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary btn-sm">← Mar</button>
+              <button class="btn btn-secondary btn-sm">May →</button>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">April 2026</div></div>
+              <div class="calendar-grid">
+                <div class="cal-header">S</div><div class="cal-header">M</div><div class="cal-header">T</div><div class="cal-header">W</div><div class="cal-header">T</div><div class="cal-header">F</div><div class="cal-header">S</div>
+                <div class="cal-day other-month">30</div><div class="cal-day other-month">31</div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day has-event">3</div><div class="cal-day">4</div><div class="cal-day">5</div>
+                <div class="cal-day">6</div><div class="cal-day has-event">7</div><div class="cal-day has-event">8</div><div class="cal-day has-event">9</div><div class="cal-day today">10</div><div class="cal-day">11</div><div class="cal-day">12</div>
+                <div class="cal-day">13</div><div class="cal-day has-event">14</div><div class="cal-day">15</div><div class="cal-day has-event">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div>
+                <div class="cal-day has-event">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day has-event">25</div><div class="cal-day">26</div>
+                <div class="cal-day">27</div><div class="cal-day has-event">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day other-month">1</div><div class="cal-day other-month">2</div><div class="cal-day other-month">3</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title" style="margin-bottom:14px;">Upcoming Deadlines</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;gap:12px;align-items:center;padding:10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;">
+                  <div style="text-align:center;flex-shrink:0;"><div style="font-size:18px;font-weight:800;font-family:var(--font-display);color:var(--accent5);">10</div><div style="font-size:9px;color:var(--text3);">APR</div></div>
+                  <div><div style="font-size:13px;font-weight:600;">API Endpoints Due · TODAY</div><div style="font-size:11px;color:var(--text2);">Ameer · Backend Architecture</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;padding:10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;">
+                  <div style="text-align:center;flex-shrink:0;"><div style="font-size:18px;font-weight:800;font-family:var(--font-display);color:var(--accent4);">14</div><div style="font-size:9px;color:var(--text3);">APR</div></div>
+                  <div><div style="font-size:13px;font-weight:600;">Sprint Review Meeting</div><div style="font-size:11px;color:var(--text2);">All members · 3:00 PM</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;padding:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;">
+                  <div style="text-align:center;flex-shrink:0;"><div style="font-size:18px;font-weight:800;font-family:var(--font-display);color:var(--accent);">20</div><div style="font-size:9px;color:var(--text3);">APR</div></div>
+                  <div><div style="font-size:13px;font-weight:600;">Backend Milestone Complete</div><div style="font-size:11px;color:var(--text2);">Phase 2 deadline</div></div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;padding:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:8px;">
+                  <div style="text-align:center;flex-shrink:0;"><div style="font-size:18px;font-weight:800;font-family:var(--font-display);color:#a78bfa;">25</div><div style="font-size:9px;color:var(--text3);">APR</div></div>
+                  <div><div style="font-size:13px;font-weight:600;">Weekly AI Report Generated</div><div style="font-size:11px;color:var(--text2);">Auto-sent to all members</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== REPORTS CONTENT ====== -->
+        <div id="reports-content" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Weekly AI Report</h2>
+              <p style="font-size:13px;color:var(--text2);margin-top:2px;">Auto-generated · Week of Apr 7–13, 2026</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="showToast('Report Downloaded','weekly-report-apr-10.pdf saved','📄')">⬇ Export PDF</button>
+              <button class="btn btn-primary btn-sm" onclick="showToast('Report Sent','Weekly report emailed to all members!','📧')">📧 Send to Team</button>
+            </div>
+          </div>
+          <div class="two-col" style="margin-bottom:16px;">
+            <div class="card">
+              <div class="card-title" style="margin-bottom:14px;">📊 Week Summary</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div class="report-metric"><span class="report-metric-label">Tasks Completed</span><span class="report-metric-value" style="color:var(--accent3);">18</span></div>
+                <div class="report-metric"><span class="report-metric-label">Tasks Delayed</span><span class="report-metric-value" style="color:var(--accent5);">6</span></div>
+                <div class="report-metric"><span class="report-metric-label">On-Time Rate</span><span class="report-metric-value" style="color:var(--accent);">75%</span></div>
+                <div class="report-metric"><span class="report-metric-label">AI Delegations</span><span class="report-metric-value" style="color:#a78bfa;">12</span></div>
+                <div class="report-metric"><span class="report-metric-label">Team Velocity</span><span class="report-metric-value" style="color:var(--accent3);">↑ 18%</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title" style="margin-bottom:14px;">👤 Individual Contributions</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;">AM</div>
+                  <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Ameer</div><div class="progress-track" style="margin-top:3px;"><div class="progress-fill green" style="width:92%;"></div></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent3);">11 tasks</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;">SA</div>
+                  <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Sara</div><div class="progress-track" style="margin-top:3px;"><div class="progress-fill" style="width:85%;"></div></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent);">7 tasks</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;">KL</div>
+                  <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Khalil</div><div class="progress-track" style="margin-top:3px;"><div class="progress-fill" style="width:70%;"></div></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent);">7 tasks</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#a78bfa,#ec4899);color:#fff;">LM</div>
+                  <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Lina</div><div class="progress-track" style="margin-top:3px;"><div class="progress-fill amber" style="width:63%;"></div></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent4);">5 tasks</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="task-assignee" style="background:linear-gradient(135deg,#f43f5e,#f97316);color:#fff;">RB</div>
+                  <div style="flex:1;"><div style="font-size:12.5px;font-weight:600;">Rami</div><div class="progress-track" style="margin-top:3px;"><div class="progress-fill" style="width:48%;background:linear-gradient(90deg,#ef4444,#f97316);"></div></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent5);">4 tasks</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">🤖 AI Workload Predictions</div>
+            <div class="ai-reasoning" style="margin-bottom:14px;">
+              "⚠️ Workload conflict detected: Ameer has 3 critical tasks due Apr 10-11. Recommend redistributing 'Code Review' task to Khalil who has bandwidth. Rami is significantly behind target — triggering accountability check. Predicted on-time delivery for Backend Milestone: 84% confidence if current velocity maintained."
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="showToast('Conflict Resolved','Code review reassigned to Khalil by AI','🔄')">🔄 Auto-Resolve Conflicts</button>
+              <button class="btn btn-secondary btn-sm" onclick="showToast('Check Sent','Accountability check sent to Rami','📋')">📋 Send Accountability Check</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== DB SCHEMA CONTENT ====== -->
+        <div id="schema-content" style="display:none;">
+          <div style="margin-bottom:20px;">
+            <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Database Schema</h2>
+            <p style="font-size:13px;color:var(--text2);margin-top:2px;">PostgreSQL · Supabase · 8 core tables with RLS policies</p>
+          </div>
+          <div class="three-col" style="gap:12px;">
+
+            <div class="schema-table">
+              <div class="schema-table-header">🧑 users</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">email</span><span class="schema-type">text</span><span class="schema-note">unique, not null</span></div>
+              <div class="schema-table-row"><span class="schema-field">full_name</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">major</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">skills_pros</span><span class="schema-type">text[]</span></div>
+              <div class="schema-table-row"><span class="schema-field">skills_cons</span><span class="schema-type">text[]</span></div>
+              <div class="schema-table-row"><span class="schema-field">xp_points</span><span class="schema-type">int</span><span class="schema-note">default 0</span></div>
+              <div class="schema-table-row"><span class="schema-field">streak_days</span><span class="schema-type">int</span><span class="schema-note">default 0</span></div>
+              <div class="schema-table-row"><span class="schema-field">avatar_url</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">🏢 workspaces</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">name</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">description</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">owner_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→users</span></div>
+              <div class="schema-table-row"><span class="schema-field">invite_code</span><span class="schema-type">varchar(8)</span><span class="schema-note">unique</span></div>
+              <div class="schema-table-row"><span class="schema-field">is_private</span><span class="schema-type">boolean</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">👤 workspace_members</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">workspace_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→workspaces</span></div>
+              <div class="schema-table-row"><span class="schema-field">user_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→users</span></div>
+              <div class="schema-table-row"><span class="schema-field">role</span><span class="schema-type">enum</span><span class="schema-note">admin|member|viewer</span></div>
+              <div class="schema-table-row"><span class="schema-field">joined_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">📁 projects</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">workspace_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→workspaces</span></div>
+              <div class="schema-table-row"><span class="schema-field">name</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">description</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">deadline</span><span class="schema-type">date</span></div>
+              <div class="schema-table-row"><span class="schema-field">status</span><span class="schema-type">enum</span><span class="schema-note">active|paused|done</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_by</span><span class="schema-type">uuid</span><span class="schema-fk">FK→users</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">🏁 milestones</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">project_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→projects</span></div>
+              <div class="schema-table-row"><span class="schema-field">title</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">due_date</span><span class="schema-type">date</span></div>
+              <div class="schema-table-row"><span class="schema-field">status</span><span class="schema-type">enum</span><span class="schema-note">pending|active|done</span></div>
+              <div class="schema-table-row"><span class="schema-field">order_index</span><span class="schema-type">int</span></div>
+              <div class="schema-table-row"><span class="schema-field">ai_generated</span><span class="schema-type">boolean</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">✅ tasks</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">milestone_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→milestones</span></div>
+              <div class="schema-table-row"><span class="schema-field">parent_task_id</span><span class="schema-type">uuid</span><span class="schema-note">nullable (subtask)</span></div>
+              <div class="schema-table-row"><span class="schema-field">title</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">assignee_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→users</span></div>
+              <div class="schema-table-row"><span class="schema-field">priority</span><span class="schema-type">enum</span><span class="schema-note">low|medium|high|critical</span></div>
+              <div class="schema-table-row"><span class="schema-field">status</span><span class="schema-type">enum</span><span class="schema-note">todo|in_progress|review|done|stuck</span></div>
+              <div class="schema-table-row"><span class="schema-field">due_date</span><span class="schema-type">date</span></div>
+              <div class="schema-table-row"><span class="schema-field">definition_of_done</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">stuck_reason</span><span class="schema-type">text</span><span class="schema-note">nullable</span></div>
+              <div class="schema-table-row"><span class="schema-field">ai_match_score</span><span class="schema-type">int</span></div>
+              <div class="schema-table-row"><span class="schema-field">ai_reasoning</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">depends_on</span><span class="schema-type">uuid[]</span><span class="schema-note">task deps</span></div>
+              <div class="schema-table-row"><span class="schema-field">estimated_hours</span><span class="schema-type">float</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">💬 comments</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">task_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→tasks</span></div>
+              <div class="schema-table-row"><span class="schema-field">author_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→users</span></div>
+              <div class="schema-table-row"><span class="schema-field">content</span><span class="schema-type">text</span></div>
+              <div class="schema-table-row"><span class="schema-field">mentions</span><span class="schema-type">uuid[]</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+
+            <div class="schema-table">
+              <div class="schema-table-header">📋 audit_logs</div>
+              <div class="schema-table-row"><span class="schema-field">id</span><span class="schema-type">uuid</span><span class="schema-pk">PK</span></div>
+              <div class="schema-table-row"><span class="schema-field">workspace_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→workspaces</span></div>
+              <div class="schema-table-row"><span class="schema-field">actor_id</span><span class="schema-type">uuid</span><span class="schema-fk">FK→users</span></div>
+              <div class="schema-table-row"><span class="schema-field">action</span><span class="schema-type">text</span><span class="schema-note">e.g. task_completed</span></div>
+              <div class="schema-table-row"><span class="schema-field">entity_type</span><span class="schema-type">text</span><span class="schema-note">task|member|project</span></div>
+              <div class="schema-table-row"><span class="schema-field">entity_id</span><span class="schema-type">uuid</span></div>
+              <div class="schema-table-row"><span class="schema-field">metadata</span><span class="schema-type">jsonb</span></div>
+              <div class="schema-table-row"><span class="schema-field">created_at</span><span class="schema-type">timestamptz</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== AUDIT LOG CONTENT ====== -->
+        <div id="audit-content" style="display:none;">
+          <div style="margin-bottom:20px;">
+            <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;">Audit Log</h2>
+            <p style="font-size:13px;color:var(--text2);margin-top:2px;">Full activity trail for this workspace</p>
+          </div>
+          <div class="card">
+            <div style="display:flex;flex-direction:column;">
+              <div class="audit-item"><span class="audit-icon">🤖</span><div class="audit-text"><strong>AI Agent</strong> delegated "API Design" to <strong>Ameer</strong> with 94% match score. Reasoning logged.</div><span class="audit-time">2:35 PM</span></div>
+              <div class="audit-item"><span class="audit-icon">✅</span><div class="audit-text"><strong>Ameer</strong> marked "PostgreSQL Schema" as complete. Definition of Done verified.</div><span class="audit-time">2:10 PM</span></div>
+              <div class="audit-item"><span class="audit-icon">🚩</span><div class="audit-text"><strong>Lina</strong> flagged "UI Wireframes" as stuck. Reason: "Waiting for brand guidelines from client."</div><span class="audit-time">1:45 PM</span></div>
+              <div class="audit-item"><span class="audit-icon">💬</span><div class="audit-text"><strong>Sara</strong> commented on "Market Research" and @mentioned Ameer for review.</div><span class="audit-time">1:20 PM</span></div>
+              <div class="audit-item"><span class="audit-icon">📋</span><div class="audit-text"><strong>Ameer</strong> created milestone "Backend Development" with 10 sub-tasks via AI decomposition.</div><span class="audit-time">10:05 AM</span></div>
+              <div class="audit-item"><span class="audit-icon">👤</span><div class="audit-text"><strong>Rami Barakat</strong> joined workspace via invite code <span style="font-family:var(--font-mono);color:var(--accent);">SYNC-4X7K</span>.</div><span class="audit-time">9:30 AM</span></div>
+              <div class="audit-item"><span class="audit-icon">⚠️</span><div class="audit-text">Overdue detection: <strong>Rami's</strong> "Presentation Slides" is 1 day past due. Notification sent.</div><span class="audit-time">9:00 AM</span></div>
+              <div class="audit-item"><span class="audit-icon">🏢</span><div class="audit-text"><strong>Ameer</strong> created workspace "CS Capstone Project" and generated invite code <span style="font-family:var(--font-mono);color:var(--accent);">SYNC-4X7K</span>.</div><span class="audit-time">Apr 9 · 8:00 PM</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </main>
+  </div>
+</div>
+
+<!-- =============== FOCUS MODE OVERLAY =============== -->
+<div class="focus-overlay" id="focus-overlay">
+  <div style="text-align:center;margin-bottom:40px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-family:var(--font-mono);">SCHOLARSYNC AI · FOCUS MODE</div>
+    <div style="width:80px;height:1px;background:var(--border);margin:0 auto;"></div>
+  </div>
+  <div class="focus-task-card">
+    <div class="focus-label"><div class="ai-dot"></div> CURRENT CRITICAL TASK</div>
+    <div class="focus-task-name">Design RESTful API Endpoints</div>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.6;">Due: Today · Backend Architecture · Assigned by AI Agent (94% match)</p>
+    <div class="focus-timer" id="focus-timer">25:00</div>
+    <div class="progress-track" style="margin-bottom:20px;">
+      <div class="progress-fill" id="focus-progress" style="width:0%;"></div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" id="focus-btn" onclick="toggleTimer()">▶ Start Pomodoro</button>
+      <button class="btn btn-secondary" onclick="toggleFocusMode()">✕ Exit Focus</button>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--text3);">
+      <span>Next: Write unit tests</span>
+      <span>2 tasks remaining today</span>
+    </div>
+  </div>
+</div>
+
+<!-- =============== MODALS =============== -->
+
+<!-- CREATE WORKSPACE MODAL -->
+<div class="modal-overlay" id="workspace-modal">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('workspace-modal')">✕</div>
+    <div class="modal-title">Create Workspace</div>
+    <div class="modal-sub">Your private project room with AI-powered delegation</div>
+    <div class="input-group"><label class="input-label">Workspace Name</label><input type="text" class="input-field" placeholder="e.g. CS Capstone · Spring 2026"></div>
+    <div class="input-group"><label class="input-label">Project Description</label><textarea class="input-field" placeholder="Describe your project for AI task decomposition..."></textarea></div>
+    <div class="input-group"><label class="input-label">Project Deadline</label><input type="date" class="input-field" value="2026-05-25"></div>
+    <div class="input-group"><label class="input-label">Access</label><select class="input-field"><option>Private (invite only)</option><option>Team (university domain)</option></select></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="createWorkspace()">⚡ Create & Generate Invite Code</button>
+      <button class="btn btn-ghost" onclick="closeModal('workspace-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVITE MODAL -->
+<div class="modal-overlay" id="invite-modal">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('invite-modal')">✕</div>
+    <div class="modal-title">Invite Team Members</div>
+    <div class="modal-sub">Share the code or send a direct email invite</div>
+    <div style="margin-bottom:16px;">
+      <div class="input-label" style="margin-bottom:8px;">Workspace Invite Code</div>
+      <div class="invite-code-box">
+        <span class="invite-code">SYNC·4X7K</span>
+        <button class="btn btn-secondary btn-sm" onclick="showToast('Copied!','Invite code copied to clipboard','📋')">Copy</button>
+      </div>
+    </div>
+    <div class="input-group"><label class="input-label">Email Invite</label><input type="email" class="input-field" placeholder="teammate@university.edu"></div>
+    <div class="input-group"><label class="input-label">Role</label>
+      <select class="input-field">
+        <option>Member (can create & complete tasks)</option>
+        <option>Viewer (read-only access)</option>
+        <option>Admin (full permissions)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="sendInvite()">📧 Send Invite Email</button>
+  </div>
+</div>
+
+<!-- NEW TASK MODAL -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('task-modal')">✕</div>
+    <div class="modal-title">New Task</div>
+    <div class="modal-sub">AI will suggest the best assignee based on skill profiles</div>
+    <div class="input-group"><label class="input-label">Task Name</label><input type="text" class="input-field" placeholder="e.g. Implement user authentication"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-group"><label class="input-label">Priority</label>
+        <select class="input-field"><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+      </div>
+      <div class="input-group"><label class="input-label">Due Date</label><input type="date" class="input-field"></div>
+    </div>
+    <div class="input-group"><label class="input-label">Assign To</label>
+      <select class="input-field"><option>🤖 AI Auto-Assign</option><option>Ameer Al-Rashid</option><option>Sara Mahmoud</option><option>Khalil Nasser</option><option>Lina Mansour</option><option>Rami Barakat</option></select>
+    </div>
+    <div class="input-group"><label class="input-label">Definition of Done</label><textarea class="input-field" placeholder="What does completion look like? Be specific..."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="createTask()">✅ Create Task</button>
+      <button class="btn btn-ghost" onclick="closeModal('task-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div class="notification-toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✅</span>
+  <div>
+    <div class="toast-text" id="toast-text">Success</div>
+    <div class="toast-sub" id="toast-sub">Action completed</div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="showModal('task-modal')" title="New Task" style="display:none;" id="fab-btn">+</button>
+
+<script>
+// ======= PAGE NAVIGATION =======
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  document.getElementById('fab-btn').style.display = (id === 'dashboard') ? 'flex' : 'none';
+}
+
+// ======= SIDEBAR NAVIGATION =======
+function navTo(el, contentId) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('[id$="-content"]').forEach(c => c.style.display = 'none');
+  const content = document.getElementById(contentId);
+  if (content) { content.style.display = 'block'; content.style.animation = 'fadeIn 0.3s ease'; }
+  const titles = {
+    'dashboard-content':'Dashboard','tasks-content':'Tasks',
+    'milestones-content':'Milestones','ai-content':'AI Agent',
+    'members-content':'Members','chat-content':'Chat',
+    'calendar-content':'Calendar','reports-content':'Reports',
+    'schema-content':'Database Schema','audit-content':'Audit Log'
+  };
+  const heading = document.getElementById('page-heading');
+  if (heading) heading.textContent = titles[contentId] || 'Dashboard';
+}
+
+// ======= AUTH =======
+function handleLogin() {
+  showToast('Authenticated!','Welcome back, Ameer Al-Rashid 👋','✅');
+  setTimeout(() => showPage('dashboard'), 800);
+}
+
+function switchAuthTab(el, id) {
+  el.parentNode.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('auth-sign-in').style.display = id === 'sign-in' ? 'block' : 'none';
+  document.getElementById('auth-sign-up').style.display = id === 'sign-up' ? 'block' : 'none';
+}
+function switchAuthTabByName(id) {
+  const tabs = document.querySelectorAll('#page-auth .tab');
+  tabs.forEach((t,i) => {
+    t.classList.remove('active');
+    if ((id === 'sign-in' && i === 0) || (id === 'sign-up' && i === 1)) t.classList.add('active');
+  });
+  document.getElementById('auth-sign-in').style.display = id === 'sign-in' ? 'block' : 'none';
+  document.getElementById('auth-sign-up').style.display = id === 'sign-up' ? 'block' : 'none';
+}
+
+// ======= MODALS =======
+function showModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('active');
+});
+
+// ======= TOAST =======
+let toastTimer;
+function showToast(title, sub, icon = '✅') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = title;
+  document.getElementById('toast-sub').textContent = sub;
+  document.getElementById('toast-icon').textContent = icon;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ======= TASK TOGGLE =======
+function toggleTask(el) {
+  el.classList.toggle('done');
+  const nameEl = el.closest('.task-item').querySelector('.task-name');
+  if (nameEl) nameEl.classList.toggle('done');
+  if (el.classList.contains('done')) showToast('Task Completed!','+50 XP earned · Streak continues 🔥','✅');
+}
+
+// ======= FOCUS MODE =======
+let focusActive = false;
+let timerInterval;
+let timeLeft = 25 * 60;
+let timerRunning = false;
+
+function toggleFocusMode() {
+  const overlay = document.getElementById('focus-overlay');
+  focusActive = !focusActive;
+  overlay.classList.toggle('active', focusActive);
+  if (!focusActive) { clearInterval(timerInterval); timerRunning = false; resetTimer(); }
+}
+
+function toggleTimer() {
+  const btn = document.getElementById('focus-btn');
+  if (!timerRunning) {
+    timerRunning = true;
+    btn.textContent = '⏸ Pause';
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      const progress = ((25 * 60 - timeLeft) / (25 * 60)) * 100;
+      document.getElementById('focus-progress').style.width = progress + '%';
+      const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+      const s = (timeLeft % 60).toString().padStart(2,'0');
+      document.getElementById('focus-timer').textContent = `${m}:${s}`;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btn.textContent = '▶ Start Pomodoro';
+        showToast('Pomodoro Complete!','Take a 5-minute break 🎉','⏱');
+        resetTimer();
+      }
+    }, 1000);
+  } else {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    btn.textContent = '▶ Resume';
+  }
+}
+
+function resetTimer() {
+  timeLeft = 25 * 60;
+  document.getElementById('focus-timer').textContent = '25:00';
+  document.getElementById('focus-progress').style.width = '0%';
+  const btn = document.getElementById('focus-btn');
+  if (btn) btn.textContent = '▶ Start Pomodoro';
+}
+
+// ======= CHAT =======
+function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const messages = document.getElementById('chat-messages');
+  const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = 'chat-msg self';
+  div.innerHTML = `
+    <div class="task-assignee" style="background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;width:30px;height:30px;">AM</div>
+    <div><div class="chat-bubble">${text}<div class="chat-time">${time}</div></div></div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  input.value = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement.id === 'chat-input') sendMessage();
+});
+
+// ======= WORKSPACE CREATE =======
+function createWorkspace() {
+  closeModal('workspace-modal');
+  showToast('Workspace Created!','Invite code SYNC·9M3P generated','🏢');
+}
+
+// ======= TASK CREATE =======
+function createTask() {
+  closeModal('task-modal');
+  showToast('Task Created!','AI Agent is finding the best assignee...','🤖');
+  setTimeout(() => showToast('AI Delegated!','Task assigned to Khalil (82% match)','⚡'), 1800);
+}
+
+// ======= INVITE =======
+function sendInvite() {
+  closeModal('invite-modal');
+  showToast('Invite Sent!','Email delivered · Awaiting acceptance','📧');
+}
+
+// ======= AI DECOMPOSITION =======
+function runAIDecomposition() {
+  const desc = document.getElementById('project-desc').value.trim();
+  const output = document.getElementById('delegation-output');
+  if (!desc) { showToast('Enter a description','Please describe your project first','⚠️'); return; }
+  output.innerHTML = `
+    <div class="delegation-header">
+      <div class="ai-dot"></div>
+      <span style="font-family:var(--font-display);font-size:14px;font-weight:700;">Processing...</span>
+    </div>
+    <div style="padding:40px;text-align:center;color:var(--text3);">
+      <div style="font-size:32px;animation:pulse 1s infinite;">🤖</div>
+      <div style="margin-top:12px;font-family:var(--font-mono);font-size:12px;">AI Agent analyzing team profiles and decomposing project...</div>
+    </div>`;
+  showToast('AI Agent Running','Decomposing project into tasks...','🤖');
+  setTimeout(() => {
+    output.innerHTML = `
+      <div class="delegation-header">
+        <div class="ai-dot"></div>
+        <span style="font-family:var(--font-display);font-size:14px;font-weight:700;">AI Delegation Complete</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--font-mono);">5 tasks · 98% avg match</span>
+      </div>
+      ${generateDelegations(desc)}`;
+    showToast('Delegation Complete!','5 tasks assigned with full reasoning','✅');
+  }, 2000);
+}
+
+function generateDelegations(desc) {
+  const members = [
+    { init:'AM', name:'Ameer', role:'CS Major', score:94, color:'#6366f1,#3b82f6', match:'match-excellent', reason:'Computer Science major with backend expertise and no scheduling conflicts detected.', priority:'CRITICAL' },
+    { init:'SA', name:'Sara', role:'Business Major', score:88, color:'#f59e0b,#ef4444', match:'match-excellent', reason:'Business background with strong research and analytical writing skills.', priority:'HIGH' },
+    { init:'LM', name:'Lina', role:'Design Major', score:91, color:'#a78bfa,#ec4899', match:'match-excellent', reason:'Design major with documented Figma and UI/UX proficiency.', priority:'MED' },
+    { init:'KL', name:'Khalil', role:'SWE Major', score:82, color:'#10b981,#06b6d4', match:'match-good', reason:'Software Engineering with security coursework and available bandwidth.', priority:'HIGH' },
+    { init:'RB', name:'Rami', role:'Comms Major', score:76, color:'#f43f5e,#f97316', match:'match-good', reason:'Communications major — best suited for documentation and presentation tasks.', priority:'MED' },
+  ];
+  const tasks = desc.split(' ').length > 10
+    ? ['Architecture & System Design','Research & Documentation','UI/UX Prototyping','Security Implementation','Presentation & Demo']
+    : ['Core Development','Analysis & Planning','Design Work','Testing','Delivery'];
+
+  return members.map((m, i) => `
+    <div class="delegation-item">
+      <div class="delegation-rank">0${i+1}</div>
+      <div class="delegation-task">
+        <div class="delegation-task-name">${tasks[i]}</div>
+        <div class="delegation-reasoning">"${m.reason} Skill match score: ${m.score}/100."</div>
+        <div class="delegation-assignee">
+          <div class="task-assignee" style="background:linear-gradient(135deg,${m.color});color:#fff;">${m.init}</div>
+          <span style="font-size:12.5px;font-weight:600;">${m.name} · ${m.role}</span>
+          <span class="match-score ${m.match}">${m.score}% Match</span>
+          <span class="task-priority priority-${m.priority.toLowerCase() === 'critical' ? 'high' : m.priority.toLowerCase() === 'high' ? 'high' : 'medium'}" style="margin-left:auto;">${m.priority}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ======= INIT =======
+window.addEventListener('load', () => {
+  document.querySelectorAll('[id$="-content"]').forEach((c, i) => { if (i > 0) c.style.display = 'none'; });
+});
+</script>
+</body>
+</html>
